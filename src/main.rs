@@ -65,6 +65,30 @@ fn fetch_all_todo_items() -> Result<Json<TodoList>, String> {
     }
 }
 
+// /todo route
+#[post("/todo", format = "json", data = "<item>")]
+fn post_todo_item(item: Json<String>) -> Result<Json<StatusMessage>, String> {
+    let db_conn = match rusqlite::Connection::open("data.sqlite") {
+        Ok(connection) => connection,
+        Err(_) => return Err("Failed to connect to DB".into()),
+    };
+
+    let mut statement = match db_conn.prepare("insert into todo_list (id, item) values (null, $1);")
+    {
+        Ok(statement) => statement,
+        Err(_) => return Err("Failed to prepare query".into()),
+    };
+
+    let results = statement.execute(&[&item.0]);
+
+    match results {
+        Ok(rows_affected) => Ok(Json(StatusMessage {
+            message: format!("{} rows inserted!", rows_affected),
+        })),
+        _ => Err("DB Error: Failed to insert items".into()),
+    }
+}
+
 // INIT rocket server
 fn main() {
     // db scope
@@ -86,6 +110,6 @@ fn main() {
 
     // mount to default route
     rocket::ignite()
-        .mount("/", routes![index, fetch_all_todo_items])
+        .mount("/", routes![index, fetch_all_todo_items, post_todo_item])
         .launch();
 }
