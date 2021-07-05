@@ -10,22 +10,8 @@ mod routes;
 // INIT
 // rocket server
 fn main() {
-    // db scope
-    {
-        // connect to sqlite
-        let db_conn = rusqlite::Connection::open("data.sqlite").unwrap();
-
-        // create table if no exists
-        db_conn
-            .execute(
-                "create table if not exists todo_list (
-                    id integer primary key,
-                    item varchar(64) not null
-                );",
-                [],
-            )
-            .unwrap();
-    } // end of db scope
+    // connect to db and create table
+    connect_db();
 
     // mount to default route
     rocket::ignite()
@@ -39,4 +25,21 @@ fn main() {
             ],
         )
         .launch();
+}
+
+// connects to db and creates table if not exists.
+fn connect_db() {
+    // connect to sqlite
+    let db_conn = rusqlite::Connection::open("data.sqlite").unwrap();
+
+    // create table if no exists
+    db_conn
+        .execute(
+            "create table if not exists todo_list (
+                id integer primary key,
+                item varchar(64) not null
+            );",
+            [],
+        )
+        .unwrap();
 }
