@@ -1,15 +1,12 @@
 // enable macros
 #![feature(decl_macro)]
 
-// get macros from rocket
-#[macro_use]
-extern crate rocket;
-
+// IMPORTS
+use rocket::*;
 use rocket_contrib::json::Json;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 // STRUCTURES
-
 #[derive(Serialize)]
 struct TodoList {
     items: Vec<TodoItem>,
@@ -26,6 +23,7 @@ struct StatusMessage {
     message: String,
 }
 
+// ROUTES
 // / route
 #[get("/")]
 fn index() -> &'static str {
@@ -89,7 +87,7 @@ fn post_todo_item(item: Json<String>) -> Result<Json<StatusMessage>, String> {
     }
 }
 
-// /todo route
+// /todo/id route
 #[delete("/todo/<id>")]
 fn delete_todo_item(id: i64) -> Result<Json<StatusMessage>, String> {
     let db_conn = match rusqlite::Connection::open("data.sqlite") {
@@ -112,7 +110,8 @@ fn delete_todo_item(id: i64) -> Result<Json<StatusMessage>, String> {
     }
 }
 
-// INIT rocket server
+// INIT
+// rocket server
 fn main() {
     // db scope
     {
