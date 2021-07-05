@@ -13,5 +13,8 @@ fn index() -> &'static str {
 
 // init rocket server
 fn main() {
+    // connect to sqlite
+    let db_conn = rusqlite::Connection::open("data.sqlite");
+    // mount to default route
     rocket::ignite().mount("/", routes![index]).launch();
 }
