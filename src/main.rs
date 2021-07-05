@@ -5,7 +5,10 @@
 #[macro_use]
 extern crate rocket;
 
+use rocket_contrib::json::Json;
 use serde::{Deserialize, Serialize};
+
+// STRUCTURES
 
 #[derive(Serialize)]
 struct TodoList {
@@ -23,13 +26,46 @@ struct StatusMessage {
     message: String,
 }
 
-// get macro from get
+// / route
 #[get("/")]
 fn index() -> &'static str {
     "Hello, Rocket!"
 }
 
-// init rocket server
+// /todo route
+#[get("/todo")]
+fn fetch_all_todo_items() -> Result<Json<TodoList>, String> {
+    let db_conn = match rusqlite::Connection::open("data.sqlite") {
+        Ok(connection) => connection,
+        Err(_) => return Err("Failed to connect to DB".into()),
+    };
+
+    let mut statement = match db_conn.prepare("select id, item from todo_list;") {
+        Ok(statement) => statement,
+        Err(_) => return Err("Failed to prepare query".into()),
+    };
+
+    let results = statement.query_map([], |row| {
+        Ok(TodoItem {
+            id: row.get(0)?,
+            item: row.get(1)?,
+        })
+    });
+
+    match results {
+        Ok(rows) => {
+            let collection: rusqlite::Result<Vec<TodoItem>> = rows.collect();
+
+            match collection {
+                Ok(items) => Ok(Json(TodoList { items })),
+                Err(_) => Err("Could not collect items".into()),
+            }
+        }
+        _ => Err("DB Error: Failed to fetch items".into()),
+    }
+}
+
+// INIT rocket server
 fn main() {
     // db scope
     {
@@ -39,7 +75,7 @@ fn main() {
         // create table if no exists
         db_conn
             .execute(
-                "create table if not exists todo (
+                "create table if not exists todo_list (
                     id integer primary key,
                     item varchar(64) not null
                 );",
@@ -49,5 +85,7 @@ fn main() {
     } // end of db scope
 
     // mount to default route
-    rocket::ignite().mount("/", routes![index]).launch();
+    rocket::ignite()
+        .mount("/", routes![index, fetch_all_todo_items])
+        .launch();
 }
